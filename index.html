@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calcolatore Leasing & Noleggio Operativo</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff; --bg2: #f5f4f0; --bg3: #ebebeb;
+  --text: #1a1a18; --text2: #6b6a65; --text3: #9e9d98;
+  --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+  --blue-bg: #e6f1fb; --blue-text: #0c447c; --blue-border: #b5d4f4;
+  --amber-bg: #faeeda; --amber-text: #854f0b;
+  --radius: 8px; --radius-lg: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e1c; --bg2: #2a2a27; --bg3: #333330;
+    --text: #f0efe8; --text2: #a8a79f; --text3: #6b6a65;
+    --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+    --blue-bg: #042c53; --blue-text: #85b7eb; --blue-border: #0c447c;
+    --amber-bg: #412402; --amber-text: #fac775;
+  }
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 1.5rem; }
+h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--text2); margin-bottom: 1.25rem; }
+.mode-bar { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+.mode-btn { padding: 6px 18px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text2); font-size: 13px; cursor: pointer; }
+.mode-btn.active { background: var(--bg2); color: var(--text); border-color: var(--border2); font-weight: 500; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+.card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; }
+.card-title { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; }
+.field { margin-bottom: 13px; }
+.field label { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text2); margin-bottom: 5px; }
+.solve-btn { font-size: 11px; padding: 2px 8px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--blue-text); cursor: pointer; }
+.solve-btn.active-solve { background: var(--blue-bg); color: var(--blue-text); border-color: var(--blue-border); }
+.field input { width: 100%; padding: 8px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); font-size: 14px; font-family: 'Courier New', monospace; }
+.field input:focus { outline: none; border-color: var(--blue-text); }
+.field input.computed { color: var(--blue-text); background: var(--blue-bg); border-color: var(--blue-border); }
+hr { border: none; border-top: 0.5px solid var(--border); margin: 13px 0; }
+.section-lbl { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.hint { font-size: 11px; color: var(--text3); padding: 7px 10px; background: var(--bg2); border-radius: var(--radius); border-left: 2px solid var(--border2); margin-bottom: 14px; }
+.calc-btn { width: 100%; padding: 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text); font-size: 14px; cursor: pointer; margin-top: 8px; }
+.calc-btn:hover { background: var(--bg2); }
+.result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 500px) { .result-grid { grid-template-columns: repeat(2, 1fr); } }
+.metric { background: var(--bg2); border-radius: var(--radius); padding: 12px 14px; }
+.metric .lbl { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+.metric .val { font-size: 16px; font-weight: 500; color: var(--text); font-family: 'Courier New', monospace; }
+.metric.hl .val { color: var(--blue-text); }
+.amort-wrap { max-height: 280px; overflow-y: auto; margin-top: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: 'Courier New', monospace; }
+thead th { text-align: right; padding: 4px 7px; color: var(--text3); font-weight: 400; border-bottom: 0.5px solid var(--border); font-size: 11px; }
+thead th:first-child { text-align: center; }
+tbody td { text-align: right; padding: 4px 7px; border-bottom: 0.5px solid var(--border); }
+tbody td:first-child { text-align: center; color: var(--text3); }
+.tag { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 5px; background: var(--amber-bg); color: var(--amber-text); }
+.tot-row td { font-weight: 500; border-top: 0.5px solid var(--border2); border-bottom: none; }
+</style>
+</head>
+<body>
+<h1>Calcolatore leasing & noleggio operativo</h1>
+<p class="subtitle">Modalità HP: seleziona quale variabile calcolare, compila le altre, premi il tasto.</p>
+
+<div class="mode-bar">
+  <button class="mode-btn active" onclick="setMode('leasing')">Leasing finanziario</button>
+  <button class="mode-btn" onclick="setMode('noleggio')">Noleggio operativo</button>
+</div>
+
+<div class="grid-2">
+  <!-- INPUT -->
+  <div class="card">
+    <div class="card-title">Variabili finanziarie</div>
+    <div class="hint">Seleziona <strong>Calcola</strong> accanto alla variabile da risolvere, compila le altre, poi premi il tasto.</div>
+
+    <div class="section-lbl">Parametri principali</div>
+
+    <div class="field">
+      <label>Imponibile (€) <button class="solve-btn" id="btn-pv" onclick="setSolve('pv')">Calcola</button></label>
+      <input type="number" id="pv" placeholder="es. 30000" />
+    </div>
+    <div class="field">
+      <label>Durata (mesi) <button class="solve-btn" id="btn-n" onclick="setSolve('n')">Calcola</button></label>
+      <input type="number" id="n" placeholder="es. 48" />
+    </div>
+    <div class="field">
+      <label>Tasso annuo (%) <button class="solve-btn" id="btn-r" onclick="setSolve('r')">Calcola</button></label>
+      <input type="number" id="r" placeholder="es. 5.5" step="0.01" />
+    </div>
+    <div class="field">
+      <label>Rata mensile (€) <button class="solve-btn" id="btn-pmt" onclick="setSolve('pmt')">Calcola</button></label>
+      <input type="number" id="pmt" placeholder="es. 650" />
+    </div>
+
+    <hr>
+    <div class="section-lbl">Opzioni aggiuntive</div>
+
+    <div class="field">
+      <label>Anticipo / maxicanone (€)</label>
+      <input type="number" id="anticipo" placeholder="0 (opzionale)" />
+    </div>
+    <div id="riscatto-wrap" class="field">
+      <label>Valore di riscatto / VR (€) <span class="tag">leasing</span></label>
+      <input type="number" id="riscatto" placeholder="0 = ammortamento totale" />
+    </div>
+
+    <hr>
+    <div class="section-lbl">Provvigioni</div>
+
+    <div class="field">
+      <label>Provvigione fissa (€ / rata)</label>
+      <input type="number" id="comm_flat" placeholder="0" />
+    </div>
+    <div class="field">
+      <label>Provvigione % (sull'imponibile)</label>
+      <input type="number" id="comm_pct" placeholder="0" step="0.01" />
+    </div>
+
+    <button class="calc-btn" onclick="calculate()">⟳ Calcola variabile selezionata</button>
+  </div>
+
+  <!-- OUTPUT -->
+  <div class="card">
+    <div class="card-title">Risultati</div>
+    <div class="result-grid">
+      <div class="metric hl">
+        <div class="lbl">Rata finanziaria</div>
+        <div class="val" id="res-pmt">—</div>
+      </div>
+      <div class="metric hl">
+        <div class="lbl">Rata totale (+ prov.)</div>
+        <div class="val" id="res-pmt-tot">—</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Totale pagamenti</div>
+        <div class="val" id="res-total">—</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Totale interessi</div>
+        <div class="val" id="res-interest">—</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Costo provvigioni</div>
+        <div class="val" id="res-comm">—</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Costo complessivo</div>
+        <div class="val" id="res-grand">—</div>
+      </div>
+    </div>
+
+    <hr style="margin-top:1.25rem;">
+    <div class="card-title" style="margin-bottom:6px;">Piano di ammortamento</div>
+    <div class="amort-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:center;">#</th>
+            <th>Quota cap.</th>
+            <th>Quota int.</th>
+            <th>Prov.</th>
+            <th>Rata tot.</th>
+            <th>Residuo</th>
+          </tr>
+        </thead>
+        <tbody id="amort-body">
+          <tr><td colspan="6" style="text-align:center;color:#9e9d98;padding:20px 0;">Inserisci i dati e premi Calcola</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+let solveFor = 'pmt';
+let currentMode = 'leasing';
+
+function setMode(m) {
+  currentMode = m;
+  document.querySelectorAll('.mode-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i===0 && m==='leasing') || (i===1 && m==='noleggio'));
+  });
+  document.getElementById('riscatto-wrap').style.display = m === 'leasing' ? '' : 'none';
+  clearResults();
+}
+
+function setSolve(v) {
+  solveFor = v;
+  ['pv','n','r','pmt'].forEach(k => {
+    const btn = document.getElementById('btn-' + k);
+    const inp = document.getElementById(k);
+    if (k === v) {
+      btn.classList.add('active-solve');
+      btn.textContent = '⟵ Risultato';
+      inp.classList.add('computed');
+      inp.value = '';
+      inp.placeholder = 'verrà calcolato';
+    } else {
+      btn.classList.remove('active-solve');
+      btn.textContent = 'Calcola';
+      inp.classList.remove('computed');
+      inp.placeholder = k==='pv'?'es. 30000': k==='n'?'es. 48': k==='r'?'es. 5.5':'es. 650';
+    }
+  });
+}
+
+function fmt(v, dec=2) {
+  return new Intl.NumberFormat('it-IT', { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(v);
+}
+
+function getVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function calcPMT(pv, r_m, n, fv=0) {
+  if (r_m === 0) return (pv - fv) / n;
+  return (pv * r_m * Math.pow(1+r_m, n) - fv * r_m) / (Math.pow(1+r_m, n) - 1);
+}
+function calcPV(pmt, r_m, n, fv=0) {
+  if (r_m === 0) return pmt * n + fv;
+  return (pmt * (1 - Math.pow(1+r_m,-n)) / r_m) + fv * Math.pow(1+r_m,-n);
+}
+function calcN(pv, pmt, r_m, fv=0) {
+  if (r_m === 0) return (pv - fv) / pmt;
+  return Math.log((pmt - fv*r_m) / (pmt - pv*r_m)) / Math.log(1+r_m);
+}
+function calcR(pv, pmt, n, fv=0) {
+  let lo = 0.000001, hi = 5, mid;
+  for (let i = 0; i < 200; i++) {
+    mid = (lo + hi) / 2;
+    const f = calcPMT(pv, mid, n, fv);
+    if (f > pmt) hi = mid; else lo = mid;
+  }
+  return mid;
+}
+
+function calculate() {
+  const anticipo = getVal('anticipo');
+  const riscatto = currentMode === 'leasing' ? getVal('riscatto') : 0;
+  const comm_flat = getVal('comm_flat');
+  const comm_pct_val = getVal('comm_pct');
+
+  let pv, n, r, pmt;
+
+  if (solveFor === 'pmt') {
+    pv = getVal('pv'); n = getVal('n'); r = getVal('r');
+    if (!pv || !n || !r) return alert('Inserisci imponibile, durata e tasso.');
+    const pv_netto = pv - anticipo;
+    pmt = calcPMT(pv_netto, r/100/12, n, riscatto);
+    document.getElementById('pmt').value = fmt(pmt);
+  } else if (solveFor === 'pv') {
+    pmt = getVal('pmt'); n = getVal('n'); r = getVal('r');
+    if (!pmt || !n || !r) return alert('Inserisci rata, durata e tasso.');
+    pv = calcPV(pmt, r/100/12, n, riscatto) + anticipo;
+    document.getElementById('pv').value = fmt(pv);
+  } else if (solveFor === 'n') {
+    pv = getVal('pv'); pmt = getVal('pmt'); r = getVal('r');
+    if (!pv || !pmt || !r) return alert('Inserisci imponibile, rata e tasso.');
+    n = Math.round(calcN(pv - anticipo, pmt, r/100/12, riscatto));
+    document.getElementById('n').value = n;
+  } else if (solveFor === 'r') {
+    pv = getVal('pv'); pmt = getVal('pmt'); n = getVal('n');
+    if (!pv || !pmt || !n) return alert('Inserisci imponibile, rata e durata.');
+    const r_m = calcR(pv - anticipo, pmt, n, riscatto);
+    r = r_m * 12 * 100;
+    document.getElementById('r').value = fmt(r, 4);
+  }
+
+  pv = pv || getVal('pv');
+  n = n || getVal('n');
+  r = r || getVal('r');
+  pmt = pmt || getVal('pmt');
+
+  const comm_per_rata = comm_flat + (pv * comm_pct_val / 100 / n);
+  const pmt_tot = pmt + comm_per_rata;
+  const totale_rate_fin = pmt * n + anticipo + riscatto;
+  const totale_interessi = totale_rate_fin - pv;
+  const totale_comm = comm_per_rata * n;
+  const grand = totale_rate_fin + totale_comm;
+
+  document.getElementById('res-pmt').textContent = fmt(pmt) + ' €';
+  document.getElementById('res-pmt-tot').textContent = fmt(pmt_tot) + ' €';
+  document.getElementById('res-total').textContent = fmt(totale_rate_fin) + ' €';
+  document.getElementById('res-interest').textContent = fmt(totale_interessi) + ' €';
+  document.getElementById('res-comm').textContent = fmt(totale_comm) + ' €';
+  document.getElementById('res-grand').textContent = fmt(grand) + ' €';
+
+  buildAmort(pv - anticipo, r/100/12, n, pmt, riscatto, comm_per_rata);
+}
+
+function buildAmort(pv, r_m, n, pmt, fv, comm) {
+  let saldo = pv;
+  const tbody = document.getElementById('amort-body');
+  tbody.innerHTML = '';
+  let totCap=0, totInt=0, totComm=0, totRata=0;
+  for (let i=1; i<=n; i++) {
+    const int_q = saldo * r_m;
+    const cap_q = pmt - int_q;
+    saldo -= cap_q;
+    if (i === n) saldo = 0;
+    totCap += cap_q; totInt += int_q; totComm += comm; totRata += pmt + comm;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i}</td><td>${fmt(cap_q)}</td><td>${fmt(int_q)}</td><td>${fmt(comm)}</td><td>${fmt(pmt+comm)}</td><td>${fmt(Math.max(saldo,0))}</td>`;
+    tbody.appendChild(tr);
+  }
+  if (fv > 0) {
+    const tr2 = document.createElement('tr');
+    tr2.innerHTML = `<td>VR</td><td>${fmt(fv)}</td><td>—</td><td>—</td><td>${fmt(fv)}</td><td>0,00</td>`;
+    tbody.appendChild(tr2);
+    totRata += fv; totCap += fv;
+  }
+  const tf = document.createElement('tr');
+  tf.className = 'tot-row';
+  tf.innerHTML = `<td><strong>Tot.</strong></td><td>${fmt(totCap)}</td><td>${fmt(totInt)}</td><td>${fmt(totComm)}</td><td>${fmt(totRata)}</td><td>—</td>`;
+  tbody.appendChild(tf);
+}
+
+function clearResults() {
+  ['res-pmt','res-pmt-tot','res-total','res-interest','res-comm','res-grand'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+  });
+  document.getElementById('amort-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9e9d98;padding:20px 0;">Inserisci i dati e premi Calcola</td></tr>';
+}
+
+setSolve('pmt');
+</script>
+</body>
+</html>
